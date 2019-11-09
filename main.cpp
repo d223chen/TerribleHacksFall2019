@@ -107,7 +107,8 @@ void poolMonitor(WINDOW*win){
 			p.y += p.yv;	
 		}	
 
-		for(struct Particle & p : particles){ //collision
+		for(int i = 0; i < particles.size(); i++){ //collision
+			struct Particle &p = particles[i];
 			if(p.y > 50 || p.y < 0){
 				p.y = p.y - p.yv;
 				p.yv = -1 * p.yv;
@@ -115,6 +116,21 @@ void poolMonitor(WINDOW*win){
 			if(p.x > 50 || p.x < 0){
 				p.x = p.x - p.xv;
 				p.xv = -1 * p.xv;
+			}
+			for(int j = 0; j < particles.size(); j++){
+				if(j != i){
+					struct Particle &q = particles[j];
+					if(q.x == p.x && q.y == q.y){ //elastic collision
+						std::swap(q.xv,p.xv);
+						std::swap(q.yv,p.yv);
+
+						//advance them early to avoid double counting the collision
+						//q.x += q.xv;
+						//q.y += q.yv;
+						//p.x += p.xv;
+						//p.y += p.yv;	
+					}
+				}
 			}
 		}
 
