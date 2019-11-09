@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <vector>
+#include <math.h>
 
 enum Atom{
 	Hydrogen,
@@ -17,28 +18,42 @@ enum Atom{
 };
 
 
-std::map<Atom, int> barrier; //tracks how many atoms are at the barrier.
+struct Particle{
+	double y;
+	double x;
+	double yv;
+	double xv;
+
+	Particle(double y, double x, double yv, double xv) : y(y), x(x), yv(yv), xv(xv){}
+};
+
+std::vector<struct Particle> particles;
+std::mutex mP;
+
+std::map<char, int> barrier; //tracks how many atoms are at the barrier.
+std::mutex mB; //protect the barrier
+//std::condition_variable cv; //wait on this condition.
 
 std::map<char, std::deque<int>> tunnel; //what atoms are in the tunnel.
-std::mutex m; //protect the tunnel
-int pipeLength = 100; //length of the tunnel...
+std::mutex mT; //protect the tunnel
+int pipeLength = 50; //length of the tunnel..
 
-void keyboardMonitor(){
+void keyboardMonitor(WINDOW * win){
 	char c = '0';
 	while(1){		
 		c = getch();
-		if(c == 'H'){
-			barrier[Hydrogen]++;
-		}	
-		else if(c == 'O'){
-			barrier[Oxygen]++;
+		if(c == 'H' || c == 'O'){
+			std::string msg = "Generating atom " + std::string(1, c) + "\n";
+			waddstr(win, msg.c_str()); 
+			wrefresh(win);	
+				
+			mT.lock();
+			tunnel[c].push_front(2); 	
+			mT.unlock();
 		}
 		else{
 			continue;
 		}
-		m.lock();
-		tunnel[c].push_front(2); 	
-		m.unlock();
 	}
 }
 
@@ -55,6 +70,64 @@ void pushMonitor(){ //move the tunnel forward
 
 //void animateScreen(
 
+void barrierMonitor(WINDOW* win){
+	std::string text = "SCIENCE TERMINAL\n";
+	waddstr(win, text.c_str());
+	wrefresh(win);
+	while(1){
+		mB.lock();
+		if(barrier['O'] >= 1 && barrier['H'] >= 2){
+			barrier['O']--;
+			barrier['H']-=2;
+			std::string w =  "WATER!!!\n";
+			waddstr(win, w.c_str()); 
+			wrefresh(win);	
+			struct Particle p(2, 2, 0, 0);
+			mP.lock();
+			particles.emplace_back(p);
+			mP.unlock();
+		}
+		mB.unlock();
+	}
+
+}
+
+
+void poolMonitor(WINDOW*win){
+	
+	while(1){
+		mP.lock();
+		for(struct Particle & p : particles){ //erase the particles
+			wmove(win, std::round(p.y), std::round(p.x)); //clear position!
+			waddch(win, ' ');
+		}
+
+		for(struct Particle & p : particles){ //move the particles
+			p.x += p.xv;
+			p.y += p.yv;	
+		}	
+
+		for(struct Particle & p : particles){ //collison
+			
+		}
+
+
+		for(struct Particle & p : particles){ //draw the particles
+			wmove(win, std::round(p.y), std::round(p.x)); //clear position!
+			waddch(win, '*');
+		}
+
+		for(struct Particle & p : particles){ //gravity acceleration
+			p.yv += 0.98;
+		}
+	
+		mP.unlock();			
+
+		sleep(1);
+	}
+
+}
+
 int main(){
 	std::system("clear");
 	initscr(); //initialize curses screen.
@@ -62,10 +135,13 @@ int main(){
 	noecho();
 	keypad(stdscr, TRUE);
 	nodelay(stdscr, TRUE);
-			
-	barrier[Hydrogen] = 0;
-	barrier[Oxygen] = 0;
-	std::thread keym(keyboardMonitor);
+		
+	WINDOW * term = newwin(50,20, 10, 50); //embedded terminal!
+	WINDOW * pool = newwin(10,10, 10, 5);
+
+	std::thread keym(keyboardMonitor, term);
+	std::thread barrierm(barrierMonitor, term);
+	std::thread poolm(poolMonitor, pool);
 	//std::thread pm(pushMonitor);	
 	while(1){ //console screen
 		waddch(stdscr, '>'); //ejector...
@@ -80,6 +156,11 @@ int main(){
 				p.second[i] = p.second[i] + 1;
 				if(p.second[i] > pipeLength){
 					p.second.pop_back();
+					wmove(stdscr, 0, x);
+					waddch(stdscr, ' ');
+					mB.lock();	
+					barrier[ch]++;
+					mB.unlock();
 				}	
 			}
 			
