@@ -82,7 +82,7 @@ void barrierMonitor(WINDOW* win){
 			std::string w =  "WATER!!!\n";
 			waddstr(win, w.c_str()); 
 			wrefresh(win);	
-			struct Particle p(2, 2, 0, 0);
+			struct Particle p(2, 2, 0, 1);
 			mP.lock();
 			particles.emplace_back(p);
 			mP.unlock();
@@ -94,7 +94,7 @@ void barrierMonitor(WINDOW* win){
 
 
 void poolMonitor(WINDOW*win){
-	
+	//box(win,0,0);
 	while(1){
 		mP.lock();
 		for(struct Particle & p : particles){ //erase the particles
@@ -107,8 +107,15 @@ void poolMonitor(WINDOW*win){
 			p.y += p.yv;	
 		}	
 
-		for(struct Particle & p : particles){ //collison
-			
+		for(struct Particle & p : particles){ //collision
+			if(p.y > 50 || p.y < 0){
+				p.y = p.y - p.yv;
+				p.yv = -1 * p.yv;
+			}	
+			if(p.x > 50 || p.x < 0){
+				p.x = p.x - p.xv;
+				p.xv = -1 * p.xv;
+			}
 		}
 
 
@@ -120,16 +127,27 @@ void poolMonitor(WINDOW*win){
 		for(struct Particle & p : particles){ //gravity acceleration
 			p.yv += 0.98;
 		}
-	
-		mP.unlock();			
 
-		sleep(1);
+		mP.unlock();			
+		wrefresh(win);	
+		
+
+		usleep(1000 * 100);
 	}
 
 }
 
+void cursor_set_color_string(const char * color){
+	printf("\e]12;%s\a", color);
+	fflush(stdout);
+
+}
+
+
+
 int main(){
 	std::system("clear");
+	cursor_set_color_string("black"); 
 	initscr(); //initialize curses screen.
 	cbreak();
 	noecho();
@@ -137,7 +155,7 @@ int main(){
 	nodelay(stdscr, TRUE);
 		
 	WINDOW * term = newwin(50,20, 10, 50); //embedded terminal!
-	WINDOW * pool = newwin(10,10, 10, 5);
+	WINDOW * pool = newwin(50,100, 10, 5);
 
 	std::thread keym(keyboardMonitor, term);
 	std::thread barrierm(barrierMonitor, term);
