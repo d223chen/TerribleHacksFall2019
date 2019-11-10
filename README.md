@@ -8,3 +8,6 @@ The particles collide elastically.
 
 
 To make, type make. To run, type ./main.sh
+
+
+Implemented using C++ and the NCurses library.
