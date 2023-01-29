@@ -7,7 +7,7 @@ A water particle is formed when 2 hydrogens and 1 oxygen are at the barrier simu
 The particles collide elastically.
 
 
-To make, type make. To run, type ./main.sh
+To make, type `make`. To run, type `./main.sh`
 
 
 Implemented using C++ and the NCurses library.
