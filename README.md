@@ -1,4 +1,4 @@
-Water particle collision simulation
+Water particle collision simulation, the project I did at TerribleHacks Fall 2019.
 + a factory.
 
 Press "H" or "O" to put Hydrogen and Oxygen atoms on the pipe.
